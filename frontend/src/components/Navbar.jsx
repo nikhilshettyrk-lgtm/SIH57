@@ -1,5 +1,15 @@
 import React, { useState } from 'react';
-import { Waves, Bell, Download, User, CheckCircle2, ShieldCheck, Activity } from 'lucide-react';
+import { 
+  Waves, 
+  Bell, 
+  Download, 
+  User, 
+  CheckCircle2, 
+  ShieldCheck, 
+  Activity,
+  Layers,
+  Compass
+} from 'lucide-react';
 
 export default function Navbar({ 
   isOnline, 
@@ -13,7 +23,7 @@ export default function Navbar({
     <header className="bg-white border-b border-slate-200/90 shadow-xs sticky top-0 z-40">
       <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Brand & Logo */}
+          {/* Brand & SIH Problem Statement Header */}
           <div className="flex items-center space-x-3 cursor-pointer" onClick={() => onNavigateTab?.('dashboard')}>
             <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-600 text-white shadow-sm">
               <Waves className="w-6 h-6" />
@@ -27,14 +37,17 @@ export default function Navbar({
                 <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
                   SIH 2026
                 </span>
+                <span className="hidden xl:inline-block text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                  Problem Statement: Sonar Debris & Anomaly Detection
+                </span>
               </div>
               <p className="text-xs text-slate-500 font-medium">
-                Automated Marine Debris & Sonar Anomaly Detection
+                Automated Side-Scan Sonar Telemetry • 4-Pillar Analytical Pipeline
               </p>
             </div>
           </div>
 
-          {/* Right Header Controls: Pipeline Status, Notifications, Download Report, User Avatar */}
+          {/* Right Header Controls */}
           <div className="flex items-center space-x-3">
             {/* Real Pipeline Telemetry Status */}
             <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs font-mono text-slate-700">
@@ -42,6 +55,17 @@ export default function Navbar({
               <span className="font-semibold text-slate-900">Pipeline:</span>
               <span className="text-slate-600">{isOnline ? 'YOLO Inference Online' : 'FastAPI Connected'}</span>
             </div>
+
+            {/* SIH 4-Pillars Quick View Button */}
+            <button
+              type="button"
+              onClick={() => onNavigateTab?.('dashboard')}
+              className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-mono text-slate-700 transition-colors"
+              title="View 4 Core SIH Requirements"
+            >
+              <Layers className="w-3.5 h-3.5 text-blue-600" />
+              <span>4 SIH Pillars</span>
+            </button>
 
             {/* Notification Icon */}
             <div className="relative">
@@ -58,8 +82,8 @@ export default function Navbar({
               {showNotifications && (
                 <div className="absolute right-0 mt-2 w-80 rounded-xl bg-white border border-slate-200 shadow-lg p-3 text-xs z-50 animate-in fade-in slide-in-from-top-2">
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100 font-semibold text-slate-800">
-                    <span>Notifications</span>
-                    <span className="text-[10px] text-blue-600 font-mono">SIH Platform</span>
+                    <span>Notifications & Audit</span>
+                    <span className="text-[10px] text-blue-600 font-mono">SIH 2026</span>
                   </div>
                   <div className="py-2 space-y-2">
                     <div className="p-2 rounded-lg bg-blue-50/60 border border-blue-100 text-slate-700">
@@ -68,7 +92,7 @@ export default function Navbar({
                         <span>FastAPI Model Online</span>
                       </div>
                       <p className="text-[11px] text-slate-600 mt-0.5">
-                        Live tiled YOLOv8 detector ready on secure endpoint.
+                        Tiled YOLO detector connected for automated object detection.
                       </p>
                     </div>
                     {hasResults && (
@@ -78,7 +102,7 @@ export default function Navbar({
                           <span>Analysis Completed</span>
                         </div>
                         <p className="text-[11px] text-slate-600 mt-0.5">
-                          Acoustic anomalies ready for expert verification.
+                          Candidate anomalies populated for validation and geotagging.
                         </p>
                       </div>
                     )}

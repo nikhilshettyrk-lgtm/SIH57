@@ -1,15 +1,39 @@
 import React from 'react';
-import { Target, TrendingUp, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { 
+  ScanSearch, 
+  Sliders, 
+  Compass, 
+  FileSpreadsheet, 
+  CheckCircle2, 
+  ShieldCheck, 
+  AlertTriangle 
+} from 'lucide-react';
+import { getGeolocationState } from '../services/api';
 
-export default function DetectionSummaryCards({ detectionResults, isLoading }) {
-  const detections = detectionResults?.detections || [];
+/**
+ * DetectionSummaryCards
+ * 
+ * Directly represents the 4 Core SIH Requirements:
+ * 1. Object Detection (Automated YOLO inference & acoustic anomaly discovery)
+ * 2. Confidence & Noise Filtering (Threshold gating & acoustic speckle discrimination)
+ * 3. Hydrographic Geotagging (WGS84 coordinate calculation from georeferenced GeoTIFF)
+ * 4. Anomaly Reporting (Analyst verification audit trail, CSV & PDF report generation)
+ */
+export default function DetectionSummaryCards({ 
+  detectionResults, 
+  isLoading, 
+  expertReviews = {} 
+}) {
+  const detections = Array.isArray(detectionResults?.detections) ? detectionResults.detections : [];
   const hasData = Boolean(detectionResults);
+  const geoState = getGeolocationState(detectionResults);
 
-  // Real values calculated directly from API detections
+  // Requirement 1: Object Detection counts
   const totalCandidates = hasData 
     ? (detectionResults.final_detection_count ?? detectionResults.count ?? detections.length) 
     : 0;
 
+  // Requirement 2: Confidence & Noise Filtering breakdown
   const higherConfCount = hasData
     ? detections.filter(d => (Number(d.confidence) || 0) >= 0.70).length
     : 0;
@@ -25,79 +49,136 @@ export default function DetectionSummaryCards({ detectionResults, isLoading }) {
     ? detections.filter(d => (Number(d.confidence) || 0) < 0.40).length
     : 0;
 
+  // Requirement 3: Geotagging status
+  const isGeoreferenced = geoState.isVerified;
+  const coordSystem = geoState.coordinateSystem || 'WGS84';
+  const coordsSummary = isGeoreferenced && geoState.primaryLatitude != null
+    ? `${geoState.primaryLatitude.toFixed(4)}°, ${geoState.primaryLongitude.toFixed(4)}°`
+    : 'No GPS Metadata';
+
+  // Requirement 4: Anomaly Reporting review counts
+  const confirmedCount = Object.values(expertReviews).filter(s => s === 'confirmed').length;
+  const rejectedCount = Object.values(expertReviews).filter(s => s === 'rejected').length;
+
   const cards = [
     {
-      label: 'Total Candidates',
+      pillarNum: 'Pillar 1',
+      sihReq: 'SIH Requirement 1',
+      label: 'Object Detection',
       value: isLoading ? '...' : hasData ? totalCandidates : '--',
-      subtext: hasData ? (totalCandidates === 1 ? '1 acoustic target' : `${totalCandidates} acoustic targets`) : 'Awaiting image analysis',
-      icon: Target,
+      unit: hasData ? (totalCandidates === 1 ? 'Candidate' : 'Candidates') : '',
+      subtext: hasData ? 'YOLO Tiled SSS Inference' : 'Awaiting sonar ingestion',
+      icon: ScanSearch,
       iconBg: 'bg-blue-50 text-blue-600',
-      badge: hasData ? 'Real API Count' : 'Standby',
+      badge: hasData ? 'Real AI Count' : 'Standby',
       badgeColor: hasData ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-100 text-slate-500 border-slate-200'
     },
     {
-      label: 'Higher Confidence',
+      pillarNum: 'Pillar 2',
+      sihReq: 'SIH Requirement 2',
+      label: 'Confidence & Noise Filter',
       value: isLoading ? '...' : hasData ? higherConfCount : '--',
-      subtext: 'Score ≥ 70% detection threshold',
-      icon: TrendingUp,
+      unit: hasData ? 'High Confidence (≥70%)' : '',
+      subtext: hasData 
+        ? `${moderateConfCount} Mod (40–69%) • ${lowConfCount} Low/Noise` 
+        : 'Speckle noise discrimination',
+      icon: Sliders,
       iconBg: 'bg-emerald-50 text-emerald-600',
-      badge: '≥ 70%',
+      badge: hasData ? `${higherConfCount}/${totalCandidates} ≥ 70%` : 'Active Filter',
       badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200'
     },
     {
-      label: 'Moderate Confidence',
-      value: isLoading ? '...' : hasData ? moderateConfCount : '--',
-      subtext: 'Score between 40% and 69.9%',
-      icon: AlertTriangle,
-      iconBg: 'bg-sky-50 text-sky-600',
-      badge: '40%–69.9%',
-      badgeColor: 'bg-sky-50 text-sky-700 border-sky-200'
+      pillarNum: 'Pillar 3',
+      sihReq: 'SIH Requirement 3',
+      label: 'Hydrographic Geotagging',
+      value: isLoading ? '...' : hasData ? (isGeoreferenced ? coordSystem : 'Unreferenced') : '--',
+      unit: isGeoreferenced ? 'Real WGS84 GeoTIFF' : (hasData ? 'Image Scan' : ''),
+      subtext: isGeoreferenced ? `Fix: ${coordsSummary}` : 'Upload GeoTIFF for real GPS coordinates',
+      icon: Compass,
+      iconBg: isGeoreferenced ? 'bg-cyan-50 text-cyan-600' : 'bg-amber-50 text-amber-600',
+      badge: isGeoreferenced ? 'WGS84 Available' : 'No Geodata',
+      badgeColor: isGeoreferenced 
+        ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+        : 'bg-slate-100 text-slate-600 border-slate-200'
     },
     {
-      label: 'Needs Expert Review',
-      value: isLoading ? '...' : hasData ? (lowConfCount > 0 ? lowConfCount : totalCandidates) : '--',
-      subtext: 'Human verification recommended',
-      icon: ShieldAlert,
-      iconBg: 'bg-amber-50 text-amber-600',
-      badge: 'Expert Review Required',
-      badgeColor: 'bg-amber-50 text-amber-700 border-amber-200'
+      pillarNum: 'Pillar 4',
+      sihReq: 'SIH Requirement 4',
+      label: 'Anomaly Reporting',
+      value: isLoading ? '...' : hasData ? (confirmedCount > 0 ? `${confirmedCount} Confirmed` : 'Ready') : '--',
+      unit: hasData ? `${detections.length} Staged Targets` : '',
+      subtext: hasData 
+        ? (confirmedCount > 0 ? `${confirmedCount} confirmed, ${rejectedCount} rejected` : 'CSV & PDF export ready') 
+        : 'Survey audit report generator',
+      icon: FileSpreadsheet,
+      iconBg: 'bg-purple-50 text-purple-600',
+      badge: hasData ? 'Audit Telemetry' : 'Standby',
+      badgeColor: 'bg-purple-50 text-purple-700 border-purple-200'
     }
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      {cards.map((card, idx) => {
-        const Icon = card.icon;
-        return (
-          <div 
-            key={idx} 
-            className="saas-card saas-card-hover p-4 sm:p-5 flex flex-col justify-between"
-          >
-            <div className="flex items-start justify-between gap-2">
+    <div className="mb-6">
+      {/* 4 SIH Requirements Header Bar */}
+      <div className="flex items-center justify-between gap-2 px-1 mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-bold uppercase font-mono tracking-wider text-slate-500">
+            SIH Problem Statement Core Requirements Matrix
+          </span>
+        </div>
+        <span className="text-[10px] font-mono text-slate-400 hidden sm:inline">
+          Object Detection • Noise Filtering • Geotagging • Anomaly Reporting
+        </span>
+      </div>
+
+      {/* 4 SIH Pillar Metric Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {cards.map((card, idx) => {
+          const Icon = card.icon;
+          return (
+            <div 
+              key={idx} 
+              className="saas-card saas-card-hover p-4 sm:p-5 flex flex-col justify-between"
+            >
               <div>
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                {/* SIH Pillar Badge & Icon */}
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono bg-slate-100 text-slate-700 border border-slate-200">
+                    {card.sihReq}
+                  </span>
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${card.iconBg}`}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                </div>
+
+                <div className="text-xs font-semibold text-slate-600">
                   {card.label}
-                </span>
-                <div className="text-2xl sm:text-3xl font-bold text-slate-900 mt-1 font-mono tracking-tight">
-                  {card.value}
+                </div>
+
+                <div className="flex items-baseline gap-2 mt-1">
+                  <span className="text-2xl sm:text-3xl font-bold text-slate-900 font-mono tracking-tight">
+                    {card.value}
+                  </span>
+                  {card.unit && (
+                    <span className="text-xs text-slate-500 font-medium truncate">
+                      {card.unit}
+                    </span>
+                  )}
                 </div>
               </div>
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${card.iconBg}`}>
-                <Icon className="w-5 h-5" />
+
+              <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                <span className="text-slate-500 truncate text-[11px] max-w-[170px]" title={card.subtext}>
+                  {card.subtext}
+                </span>
+                <span className={`text-[10px] font-mono px-2 py-0.5 rounded border font-semibold shrink-0 ${card.badgeColor}`}>
+                  {card.badge}
+                </span>
               </div>
             </div>
-
-            <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-              <span className="text-slate-500 truncate text-[11px]">
-                {card.subtext}
-              </span>
-              <span className={`text-[10px] font-mono px-2 py-0.5 rounded border font-semibold shrink-0 ${card.badgeColor}`}>
-                {card.badge}
-              </span>
-            </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

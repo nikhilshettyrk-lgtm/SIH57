@@ -260,17 +260,20 @@ export default function HydrographicMap({
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-base font-bold text-slate-900 tracking-tight">
-                Detection Map
+                Stage 4: Geotagging & Hydrographic Map
               </h3>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold border border-blue-200">
+                SIH Pillar 3: Geotagging
+              </span>
               {hasCoordinates && (
-                <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-semibold border border-blue-200">
+                <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200">
                   {validDetections.length} Active {validDetections.length === 1 ? 'Target' : 'Targets'}
                 </span>
               )}
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
               {hasCoordinates 
-                ? "Detection positions calculated from georeferenced sonar imagery."
+                ? "Detection positions calculated from georeferenced sonar imagery (WGS84 Datum)."
                 : "Geospatial positions available only when analyzing georeferenced sonar files."}
             </p>
           </div>

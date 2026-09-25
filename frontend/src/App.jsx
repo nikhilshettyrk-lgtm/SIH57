@@ -84,7 +84,7 @@ export default function App() {
       ...prev,
       [markerId]: prev[markerId] === status ? 'pending' : status
     }));
-    setCurrentStep(3); // Advance to Expert Review step
+    setCurrentStep(3); // Stage 3: Anomaly Validation
   };
 
   // Step selection handler from WorkflowStepper
@@ -102,7 +102,7 @@ export default function App() {
     if (!detectionResults) return;
     try {
       exportAnalysisCSV(detectionResults.filename || fileMeta?.name, detectionResults);
-      setCurrentStep(4);
+      setCurrentStep(5); // Stage 5: Reporting
     } catch (err) {
       alert(err.message);
     }
@@ -112,7 +112,7 @@ export default function App() {
     if (!detectionResults) return;
     try {
       downloadAnalysisReport(detectionResults.filename || fileMeta?.name, detectionResults);
-      setCurrentStep(4);
+      setCurrentStep(5); // Stage 5: Reporting
     } catch (err) {
       alert(err.message);
     }
@@ -143,19 +143,21 @@ export default function App() {
 
         {/* Main Content Area */}
         <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 relative z-10">
-          {/* 4-Step Interactive Workflow Banner (Requirement 1) */}
+          {/* 5-Stage Interactive SIH Workflow Banner */}
           <WorkflowStepper 
             currentStep={currentStep}
             onSelectStep={handleSelectStep}
             hasImage={Boolean(imagePreview)}
             hasResults={Boolean(detectionResults)}
             hasReviews={Object.keys(expertReviews).length > 0}
+            isVerified={isVerified}
           />
 
-          {/* Section: Dashboard Summary Metrics Cards (Requirement 8) */}
+          {/* Section: 4 SIH Core Requirements Summary Cards */}
           <DetectionSummaryCards 
             detectionResults={detectionResults}
             isLoading={isLoading}
+            expertReviews={expertReviews}
           />
 
           {/* Conditional Views based on Sidebar Tabs */}
@@ -245,7 +247,7 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'expert-review' && (
+          {(activeTab === 'validation' || activeTab === 'expert-review') && (
             <ExpertReviewSection 
               detectionResults={detectionResults}
               expertReviews={expertReviews}
@@ -255,7 +257,7 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'map' && (
+          {(activeTab === 'geotagging' || activeTab === 'map') && (
             <HydrographicMap 
               detectionResults={detectionResults}
               isLoading={isLoading}
@@ -266,7 +268,7 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'reports' && (
+          {(activeTab === 'reporting' || activeTab === 'reports') && (
             <ReportsView 
               detectionResults={detectionResults}
               fileMeta={fileMeta}

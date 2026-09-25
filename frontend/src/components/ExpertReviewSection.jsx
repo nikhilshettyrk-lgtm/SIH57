@@ -7,18 +7,25 @@ import {
   MapPin, 
   AlertTriangle, 
   Compass, 
-  Info,
-  CheckCircle2,
-  XCircle,
-  Clock
+  Info, 
+  CheckCircle2, 
+  XCircle, 
+  Clock,
+  UserCheck
 } from 'lucide-react';
 import { 
   getCandidateDisplayName, 
-  getConfidenceLevel,
-  AI_CANDIDATE_STATUS,
-  EXPERT_REVIEW_RECOMMENDATION
+  getConfidenceLevel, 
+  AI_CANDIDATE_STATUS, 
+  EXPERT_REVIEW_RECOMMENDATION 
 } from '../services/api';
 
+/**
+ * ExpertReviewSection / Anomaly Validation
+ * 
+ * Represents SIH Workflow Stage 3 (Anomaly Validation)
+ * and feeds SIH Pillar 2 (Noise Filtering) & Pillar 4 (Anomaly Reporting)
+ */
 export default function ExpertReviewSection({
   detectionResults,
   expertReviews = {},
@@ -26,7 +33,7 @@ export default function ExpertReviewSection({
   selectedDetectionId,
   onSelectDetection
 }) {
-  const detections = detectionResults?.detections || [];
+  const detections = Array.isArray(detectionResults?.detections) ? detectionResults.detections : [];
   const hasResults = Boolean(detectionResults);
 
   const handleSelectCandidate = (markerId) => {
@@ -47,11 +54,16 @@ export default function ExpertReviewSection({
             <ShieldCheck className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-slate-900 tracking-tight">
-              Expert Review & Verification
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-bold text-slate-900 tracking-tight">
+                Stage 3: Anomaly Validation & Human Verification
+              </h3>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold border border-blue-200">
+                SIH Pillar 2 & 4
+              </span>
+            </div>
             <p className="text-xs text-slate-500">
-              Human hydrographic analyst review of AI-predicted acoustic candidates.
+              Human-in-the-loop hydrographic analyst validation of AI-predicted acoustic candidates.
             </p>
           </div>
         </div>
@@ -59,10 +71,10 @@ export default function ExpertReviewSection({
         <div className="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
           <Clock className="w-8 h-8 text-slate-400 mx-auto mb-2" />
           <p className="text-sm font-semibold text-slate-700 font-sans">
-            No active candidates staged for expert review
+            No active candidates staged for validation
           </p>
           <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-            Upload a side-scan sonar image and run AI analysis to populate candidates for human verification.
+            Upload a side-scan sonar image and run AI detection to populate acoustic anomalies for human verification.
           </p>
         </div>
       </div>
@@ -79,19 +91,22 @@ export default function ExpertReviewSection({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 mb-5">
         <div className="flex items-center gap-2.5">
           <div className="p-2 rounded-lg bg-blue-50 text-blue-600 border border-blue-100">
-            <ShieldCheck className="w-5 h-5" />
+            <UserCheck className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-base font-bold text-slate-900 tracking-tight">
-                Expert Review
+                Stage 3: Anomaly Validation & Verification
               </h3>
               <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-semibold border border-slate-200">
                 {detections.length} {detections.length === 1 ? 'Candidate' : 'Candidates'}
               </span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
+                SIH Pillar 2: Validation
+              </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Review AI-predicted candidates before confirmation. Clicking a candidate focuses its map marker.
+              Human-in-the-loop review before final identification. Clicking an anomaly centers its hydrographic marker.
             </p>
           </div>
         </div>
@@ -114,8 +129,8 @@ export default function ExpertReviewSection({
       <div className="mb-5 p-3 rounded-lg bg-amber-50/70 border border-amber-200/80 text-xs text-amber-900 flex items-start gap-2.5">
         <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
         <div className="leading-relaxed">
-          <strong className="font-semibold text-amber-950">Scientific Protocol & Clarification: </strong>
-          "Confirm" signifies: <span className="font-semibold underline">Expert confirms this AI candidate</span>. It does NOT imply that the AI system itself has confirmed or definitively identified the target. AI detections are candidate anomalies and require expert validation.
+          <strong className="font-semibold text-amber-950">Scientific Protocol & Validation Clarification: </strong>
+          "Confirm" signifies: <span className="font-semibold underline">Human hydrographic analyst confirms this candidate anomaly</span>. It does NOT mean the AI independently verified the physical target. AI detections remain candidates until expert validation.
         </div>
       </div>
 
@@ -151,7 +166,7 @@ export default function ExpertReviewSection({
               }`}
             >
               <div>
-                {/* Card Top: Target ID, Candidate Name, Confidence Badge */}
+                {/* Card Top: Target ID, Candidate Name, Status Badge */}
                 <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-slate-100">
                   <div className="flex items-center gap-2">
                     <span className={`w-6 h-6 rounded-lg text-xs font-mono font-bold flex items-center justify-center border ${
@@ -171,87 +186,85 @@ export default function ExpertReviewSection({
                     </div>
                   </div>
 
-                  <div className="text-right shrink-0">
-                    <span className="text-sm font-bold text-slate-900 font-mono">
-                      {confPct}
-                    </span>
-                    <span className={`block text-[10px] font-semibold px-2 py-0.5 rounded border mt-0.5 ${
-                      confNum >= 0.70
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : confNum >= 0.40
-                        ? 'bg-sky-50 text-sky-700 border-sky-200'
-                        : 'bg-amber-50 text-amber-700 border-amber-200'
-                    }`}>
-                      {confLevel}
+                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded border font-semibold ${
+                    confNum >= 0.70
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : confNum >= 0.40
+                      ? 'bg-sky-50 text-sky-700 border-sky-200'
+                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                  }`}>
+                    {confPct}
+                  </span>
+                </div>
+
+                {/* Candidate Telemetry Grid */}
+                <div className="grid grid-cols-2 gap-2 text-xs font-mono py-3 border-b border-slate-100">
+                  <div>
+                    <span className="text-slate-400 text-[10px] uppercase block">Confidence Tier:</span>
+                    <span className="text-slate-800 font-semibold">{confLevel}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 text-[10px] uppercase block">WGS84 Coordinates:</span>
+                    <span className={hasCoord ? "text-slate-800 font-semibold" : "text-slate-400"}>
+                      {hasCoord ? `${latDisplay}, ${lonDisplay}` : 'Not available'}
                     </span>
                   </div>
                 </div>
 
-                {/* Coordinates & Telemetry */}
-                <div className="py-2.5 space-y-1 text-xs font-mono text-slate-600">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500">Latitude:</span>
-                    <span className={hasCoord ? "font-semibold text-slate-900" : "text-slate-400"}>
-                      {latDisplay}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500">Longitude:</span>
-                    <span className={hasCoord ? "font-semibold text-slate-900" : "text-slate-400"}>
-                      {lonDisplay}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-slate-500">Review Status:</span>
-                    {currentStatus === 'confirmed' ? (
-                      <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Expert Confirmed</span>
-                      </span>
-                    ) : currentStatus === 'rejected' ? (
-                      <span className="inline-flex items-center gap-1 text-red-700 font-semibold">
-                        <XCircle className="w-3.5 h-3.5" />
-                        <span>Expert Rejected</span>
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-amber-700 font-semibold">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>Pending Expert Review</span>
-                      </span>
-                    )}
-                  </div>
+                {/* Analyst Review Note */}
+                <div className="pt-2 text-[11px] text-slate-600 leading-snug">
+                  <strong className="text-slate-800">Review Note: </strong>
+                  {EXPERT_REVIEW_RECOMMENDATION}
                 </div>
               </div>
 
-              {/* Action Buttons: [ Reject ] [ Confirm ] */}
-              <div className="pt-3 border-t border-slate-100 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                <button
-                  type="button"
-                  onClick={() => onUpdateReview?.(markerId, 'rejected')}
-                  className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold border transition-all flex items-center justify-center gap-1.5 ${
-                    currentStatus === 'rejected'
-                      ? 'bg-red-600 text-white border-red-600 shadow-xs'
-                      : 'bg-white hover:bg-red-50 text-red-700 border-slate-300 hover:border-red-300'
-                  }`}
-                  title="Mark as rejected / false positive"
-                >
-                  <X className="w-3.5 h-3.5" />
-                  <span>Reject</span>
-                </button>
+              {/* Action Buttons: Reject / Confirm */}
+              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
+                <span className="text-[11px] font-mono font-medium">
+                  {currentStatus === 'confirmed' ? (
+                    <span className="inline-flex items-center gap-1 text-emerald-700 font-bold">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Confirmed by Analyst</span>
+                    </span>
+                  ) : currentStatus === 'rejected' ? (
+                    <span className="inline-flex items-center gap-1 text-red-700 font-bold">
+                      <XCircle className="w-3.5 h-3.5" />
+                      <span>Rejected by Analyst</span>
+                    </span>
+                  ) : (
+                    <span className="text-amber-700 font-semibold">
+                      ● Verification Pending
+                    </span>
+                  )}
+                </span>
 
-                <button
-                  type="button"
-                  onClick={() => onUpdateReview?.(markerId, 'confirmed')}
-                  className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold border transition-all flex items-center justify-center gap-1.5 ${
-                    currentStatus === 'confirmed'
-                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                      : 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600'
-                  }`}
-                  title="Expert confirms this AI candidate"
-                >
-                  <Check className="w-3.5 h-3.5" />
-                  <span>Confirm</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onUpdateReview?.(markerId, 'rejected')}
+                    className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                      currentStatus === 'rejected'
+                        ? 'bg-red-600 text-white border-red-600 shadow-xs'
+                        : 'bg-white text-red-700 border-red-200 hover:bg-red-50'
+                    }`}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    <span>Reject</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => onUpdateReview?.(markerId, 'confirmed')}
+                    className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                      currentStatus === 'confirmed'
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                        : 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700 shadow-xs'
+                    }`}
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Confirm</span>
+                  </button>
+                </div>
               </div>
             </div>
           );

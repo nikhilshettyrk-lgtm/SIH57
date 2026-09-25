@@ -10,15 +10,16 @@ import {
   Clock, 
   Compass, 
   Crosshair,
-  Maximize2
+  Maximize2,
+  Filter
 } from 'lucide-react';
 import { 
   getCandidateDisplayName, 
-  getConfidenceLevel,
-  AI_CANDIDATE_STATUS,
-  EXPERT_REVIEW_RECOMMENDATION,
-  CONFIDENCE_SCORE_EXPLANATION,
-  AI_DETECTION_EXPLANATION
+  getConfidenceLevel, 
+  AI_CANDIDATE_STATUS, 
+  EXPERT_REVIEW_RECOMMENDATION, 
+  CONFIDENCE_SCORE_EXPLANATION, 
+  AI_DETECTION_EXPLANATION 
 } from '../services/api';
 
 export default function DetectionResults({
@@ -35,14 +36,16 @@ export default function DetectionResults({
   const [confidenceThreshold, setConfidenceThreshold] = useState(20); // 20% default threshold
   const [imgNaturalDims, setImgNaturalDims] = useState(null);
 
-  const rawDetections = detectionResults?.detections || [];
+  const rawDetections = Array.isArray(detectionResults?.detections) ? detectionResults.detections : [];
   const hasResults = Boolean(detectionResults);
 
-  // Dynamic threshold filtering (Requirement 3)
+  // Dynamic threshold & acoustic noise filtering (SIH Requirement 2)
   const filteredDetections = rawDetections.filter(d => {
     const conf = (Number(d.confidence) || 0) * 100;
     return conf >= confidenceThreshold;
   });
+
+  const suppressedCount = rawDetections.length - filteredDetections.length;
 
   const handleSelectCandidate = (markerId) => {
     if (onSelectDetection) {
@@ -126,28 +129,32 @@ export default function DetectionResults({
 
   return (
     <div id="ai-detection-section" className="saas-card p-5 sm:p-6 mb-6">
-      {/* Top Breadcrumb (Requirement 3) */}
+      {/* SIH Workflow Pipeline Breadcrumb */}
       <div className="flex items-center gap-2 text-xs font-mono text-slate-500 pb-4 border-b border-slate-100 mb-5 overflow-x-auto">
         <span className={imagePreview ? "text-slate-900 font-semibold" : "text-blue-600 font-bold"}>
-          Image Input
-        </span>
-        <span className="text-slate-400">→</span>
-        <span className={isLoading ? "text-blue-600 font-bold" : "text-slate-900 font-semibold"}>
-          Preprocessing
+          1. Upload Sonar
         </span>
         <span className="text-slate-400">→</span>
         <span className={hasResults ? "text-blue-600 font-bold" : "text-slate-500"}>
-          AI Detection
+          2. AI Object Detection (Pillar 1)
         </span>
         <span className="text-slate-400">→</span>
         <span className="text-slate-500">
-          Expert Review
+          3. Anomaly Validation & Filtering (Pillar 2)
+        </span>
+        <span className="text-slate-400">→</span>
+        <span className="text-slate-500">
+          4. Geotagging (Pillar 3)
+        </span>
+        <span className="text-slate-400">→</span>
+        <span className="text-slate-500">
+          5. Reporting (Pillar 4)
         </span>
       </div>
 
       {/* Main Section Layout: Left viewer (8 cols) + Right panel (4 cols) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* LEFT: Large Sonar Image Viewer */}
+        {/* LEFT: Large Sonar Image Viewer (SIH Requirement 1: Object Detection) */}
         <div className="lg:col-span-8 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -155,6 +162,9 @@ export default function DetectionResults({
               <h3 className="text-sm font-bold uppercase tracking-wider font-mono text-slate-900">
                 Acoustic Sonar Viewer & Bounding Boxes
               </h3>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold border border-blue-200">
+                SIH Pillar 1: Object Detection
+              </span>
             </div>
             {hasResults && (
               <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-semibold border border-blue-200">
@@ -183,8 +193,8 @@ export default function DetectionResults({
                   <div className="absolute inset-0 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs">
                     <div className="p-4 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 font-mono text-xs max-w-xs text-center">
                       <CheckCircle2 className="w-6 h-6 text-emerald-400 mx-auto mb-1.5" />
-                      <p className="font-semibold text-white">No candidates exceed {confidenceThreshold}% threshold</p>
-                      <p className="text-[11px] text-slate-400 mt-1">Adjust the AI Detection Threshold slider to reveal lower-confidence anomalies.</p>
+                      <p className="font-semibold text-white">All candidates filtered at {confidenceThreshold}% threshold</p>
+                      <p className="text-[11px] text-slate-400 mt-1">Lower the Acoustic Noise Filter threshold slider to reveal candidate anomalies.</p>
                     </div>
                   </div>
                 )}
@@ -193,42 +203,43 @@ export default function DetectionResults({
               <div className="p-8 text-center text-slate-400 max-w-md">
                 <Layers className="w-10 h-10 text-slate-600 mx-auto mb-3" />
                 <h4 className="text-sm font-semibold text-slate-300 font-sans">
-                  Awaiting Sonar Image Analysis
+                  Awaiting Sonar Image Ingestion
                 </h4>
                 <p className="text-xs text-slate-500 mt-1">
-                  Upload a side-scan sonar image and click "Analyze Sonar" above to render bounding boxes directly onto acoustic anomaly targets.
+                  Upload a side-scan sonar image or GeoTIFF above and run automated AI detection to render candidate bounding boxes.
                 </p>
               </div>
             )}
           </div>
 
-          <div className="mt-3 flex items-center justify-between text-xs text-slate-500 font-mono">
-            <span>Palette: High-Contrast Marine Gray / Acoustic Sonar</span>
+          <div className="mt-3 flex flex-wrap items-center justify-between text-xs text-slate-500 font-mono gap-2">
+            <span>Coloring: Green (≥70%) • Blue (40–69%) • Amber (&lt;40%)</span>
             <span>Method: {detectionResults?.inference_method || 'Tiled YOLO Object Detection'}</span>
           </div>
         </div>
 
-        {/* RIGHT PANEL: AI Object Detection & Threshold Slider */}
+        {/* RIGHT PANEL: SIH Requirement 2: Confidence & Noise Filtering */}
         <div className="lg:col-span-4 flex flex-col justify-between space-y-4">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
               <h3 className="text-sm font-bold uppercase tracking-wider font-mono text-slate-900 flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-blue-600" />
-                <span>AI Object Detection</span>
+                <Sliders className="w-4 h-4 text-emerald-600" />
+                <span>Noise & Confidence Filter</span>
               </h3>
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
-                Live YOLO
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                SIH Pillar 2
               </span>
             </div>
 
-            {/* AI Detection Threshold Slider (Requirement 3) */}
+            {/* Acoustic Noise Filter Slider (SIH Requirement 2) */}
             <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 mb-4 space-y-2">
               <div className="flex items-center justify-between text-xs font-semibold text-slate-800">
                 <label htmlFor="detection-threshold-slider" className="flex items-center gap-1.5">
-                  <span>AI Detection Threshold:</span>
+                  <Filter className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Acoustic Noise Filter:</span>
                 </label>
-                <span className="font-mono text-blue-700 bg-white px-2 py-0.5 rounded border border-slate-200 text-xs">
-                  {confidenceThreshold}%
+                <span className="font-mono text-blue-700 bg-white px-2 py-0.5 rounded border border-slate-200 text-xs font-bold">
+                  {confidenceThreshold}% Cutoff
                 </span>
               </div>
               <input
@@ -242,17 +253,27 @@ export default function DetectionResults({
                 className="w-full accent-blue-600 cursor-pointer"
               />
               <div className="flex justify-between text-[10px] font-mono text-slate-400">
-                <span>0% (All Candidates)</span>
+                <span>0% (Raw All)</span>
                 <span>50%</span>
                 <span>90% (Strict)</span>
               </div>
+
+              {/* Filtering Telemetry Status */}
+              <div className="pt-2 border-t border-slate-200/80 flex items-center justify-between text-[11px] font-mono">
+                <span className="text-emerald-700 font-semibold">
+                  {filteredDetections.length} Active Candidates
+                </span>
+                <span className="text-slate-500">
+                  {suppressedCount} Suppressed Noise
+                </span>
+              </div>
             </div>
 
-            {/* Scientific Explanation Callout (Requirement 3) */}
+            {/* Scientific Explanation Callout */}
             <div className="p-3 rounded-xl bg-blue-50/60 border border-blue-100 text-xs text-slate-700 space-y-1.5 mb-4">
               <div className="flex items-center gap-1.5 font-bold text-blue-900 text-[11px]">
                 <Info className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                <span>AI Detection Protocol:</span>
+                <span>AI Detection & Filtering Protocol:</span>
               </div>
               <p className="text-[11px] leading-relaxed text-slate-600">
                 {AI_DETECTION_EXPLANATION}
@@ -262,7 +283,7 @@ export default function DetectionResults({
                   AI-Predicted Candidate
                 </span>
                 <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
-                  Expert Review Required
+                  Human Verification Required
                 </span>
               </div>
             </div>
@@ -319,7 +340,7 @@ export default function DetectionResults({
                           ) : currentStatus === 'rejected' ? (
                             <strong className="text-red-600">Rejected</strong>
                           ) : (
-                            <span className="text-amber-600">Review Required</span>
+                            <span className="text-amber-600">Pending Review</span>
                           )}
                         </span>
                       </div>
@@ -329,7 +350,7 @@ export default function DetectionResults({
               ) : (
                 <div className="p-6 text-center text-xs font-mono text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
                   {hasResults 
-                    ? `No candidates match current ${confidenceThreshold}% threshold`
+                    ? `All candidates filtered out at ${confidenceThreshold}% noise threshold`
                     : 'Awaiting model inference'}
                 </div>
               )}
